@@ -1,0 +1,1 @@
+srun --pty --gres gpu:H100:2 torchrun --nproc_per_node 2 inst2desc-for-json.py --ckpt_dir /home/weili3/llama3/Meta-Llama-3-70B-Instruct-2-shards/ --tokenizer_path /home/weili3/llama3/Meta-Llama-3-70B-Instruct/tokenizer.model --max_seq_len 8192 --max_batch_size 1 --json_path /home/weili3/VLSI-LLM/data_collection/RTL2.json
