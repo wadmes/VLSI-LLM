@@ -6,3 +6,6 @@ It includes the following directories:
 - `model/`: The LLAMA3 model and the training code.
 - `experiments/`: Contains the code to construct the evaluation flow
 - `data/`: Contains the data used in the project
+
+
+# Environment Setup
