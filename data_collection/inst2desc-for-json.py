@@ -62,7 +62,7 @@ def main(
     
     error = []
     res = []
-    for i in tqdm(range(len(json_content))):
+    for i in tqdm(json_content.keys()):
         dialogs: List[Dialog] = [
             [
                 {"role": "user", "content": """Given a design instruction, change it into a tone of description. Do not change or add any details.  \n

@@ -4,6 +4,7 @@
 *.log
 *.csv
 *.txt
+*.v
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

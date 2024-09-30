@@ -1,12 +1,17 @@
-from memory_profiler import memory_usage
 import ijson
+import json
 
-def process_json():
-    with open("/home/weili3/VLSI-LLM/data_collection/netlist2.json", 'r', buffering=1024 * 1024) as file:
+if __name__ == "__main__":
+    with open("/home/weili3/VLSI-LLM/data_collection/netlist2.json", 'r') as file:
         parser = ijson.items(file, 'item')
         for i, item in enumerate(parser):
-            print(item)
-            break
+            print(item['rtl_id'])
 
-mem_usage = memory_usage(process_json)
-print(f"Memory usage: {mem_usage}")
+    # # Load the JSON file into a Python dictionary
+    # with open("/home/weili3/VLSI-LLM/data_collection/RTL.json", 'r') as file:
+    #     data = json.load(file)
+
+    # # Print the number of key-value pairs in the dictionary
+    # print(f"The length of the JSON dictionary is: {len(data)}")
+
+

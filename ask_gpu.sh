@@ -1,2 +1,3 @@
-module load cudnn8.6-cuda11.8/8.6.0.163  cuda11.8/toolkit/11.8.0 cuda11.8/fft/11.8.0 cuda11.8/blas/11.8.0
+module load cudnn8.9-cuda12.3  cuda12.3/toolkit cuda12.3/fft cuda12.3/blas
+conda activate molca
 srun --pty --gres gpu:H100:1 /bin/bash
