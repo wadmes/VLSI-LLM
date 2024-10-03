@@ -11,4 +11,4 @@ It includes the following directories:
 # Environment Setup
 ## Usage of this server
 
-https://cmu.app.box.com/notes/1393226483363?s=rt36qpa231gf3pgqyl4i9c4rudgjir6j
+https://docs.google.com/document/d/1Y9UY6wuEQATQp6uoCrcYSXm1ZXg0_93fmgGyHJzhGsQ/edit
