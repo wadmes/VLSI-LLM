@@ -1,2 +1,2 @@
 module load cudnn8.9-cuda12.3  cuda12.3/toolkit cuda12.3/fft cuda12.3/blas
-srun --pty --gres gpu:H100:2 -t 3-0 torchrun --nproc_per_node 2 inst2desc-for-json.py --ckpt_dir /home/weili3/llama3/Meta-Llama-3-70B-Instruct-2-shards/ --tokenizer_path /home/weili3/llama3/Meta-Llama-3-70B-Instruct/tokenizer.model --max_seq_len 8192 --max_batch_size 1 --json_path /home/weili3/VLSI-LLM/data_collection/RTL.json
+srun --pty --gres gpu:H100:2 -t 3-0 torchrun --nproc_per_node 2 inst2desc-for-json.py --ckpt_dir /home/weili3/llama3/Meta-Llama-3-70B-Instruct-2-shards/ --tokenizer_path /home/weili3/llama3/Meta-Llama-3-70B-Instruct/tokenizer.model --max_seq_len 8192 --max_batch_size 1 --json_path /home/weili3/VLSI-LLM/data_collection/rtl_data/rtl.json

@@ -63,30 +63,31 @@ def main(
     error = []
     res = []
     for i in tqdm(json_content.keys()):
-        dialogs: List[Dialog] = [
-            [
-                {"role": "user", "content": """Given a design instruction, change it into a tone of description. Do not change or add any details.  \n
-                 Here are two examples. \n
-                 Instruction: Design a module that can detect any edge in an 8-bit binary vector and output the binary value of the vector one cycle after the edge is detected. The module should have two input ports: a clock input and an 8-bit binary input port. The output port should be an 8-bit binary vector that represents the input value one cycle after the edge is detected. The module must be designed using a counter and a comparator.
-                \n Example description: This module is designed to detect any edge in an 8-bit binary vector and output the binary value of the vector one cycle after the edge is detected. The module has two input ports: a clock input (`clk`) and an 8-bit binary input port (`in`). The output port (`out`) is an 8-bit binary vector that represents the input value one cycle after the edge is detected. The design uses a counter and a comparator to achieve this functionality.
-                \n Instruction: Please act as a professional Verilog designer. Design a pipelined module that implements a 4-to-2 priority encoder. The module should have four 1-bit inputs (I0, I1, I2, I3) and two 2-bit outputs (O0, O1). The output should be the binary encoding of the highest-priority input that is asserted. If multiple inputs are asserted, the output should correspond to the input with the highest index number (i.e., the last asserted input in the list). Use pipeline structure to achieve this functionality.
-                \n Example description: This design is a pipelined 4-to-2 priority encoder module. The module has four 1-bit inputs (`I0`, `I1`, `I2`, `I3`) and two 2-bit outputs (`O0`, `O1`). The output is the binary encoding of the highest-priority input that is asserted. If multiple inputs are asserted, the output corresponds to the input with the highest index number. The design uses a pipeline structure to implement this functionality.
-                \n Now, please change this instruction directly (do not include any pre-fix like `here is a rewritten description): """ + json_content[i]['rtl_instruction']},
+        if json_content[i]['description'] == "":
+            dialogs: List[Dialog] = [
+                [
+                    {"role": "user", "content": """Given a design instruction, change it into a tone of description. Do not change or add any details.  \n
+                    Here are two examples. \n
+                    Instruction: Design a module that can detect any edge in an 8-bit binary vector and output the binary value of the vector one cycle after the edge is detected. The module should have two input ports: a clock input and an 8-bit binary input port. The output port should be an 8-bit binary vector that represents the input value one cycle after the edge is detected. The module must be designed using a counter and a comparator.
+                    \n Example description: This module is designed to detect any edge in an 8-bit binary vector and output the binary value of the vector one cycle after the edge is detected. The module has two input ports: a clock input (`clk`) and an 8-bit binary input port (`in`). The output port (`out`) is an 8-bit binary vector that represents the input value one cycle after the edge is detected. The design uses a counter and a comparator to achieve this functionality.
+                    \n Instruction: Please act as a professional Verilog designer. Design a pipelined module that implements a 4-to-2 priority encoder. The module should have four 1-bit inputs (I0, I1, I2, I3) and two 2-bit outputs (O0, O1). The output should be the binary encoding of the highest-priority input that is asserted. If multiple inputs are asserted, the output should correspond to the input with the highest index number (i.e., the last asserted input in the list). Use pipeline structure to achieve this functionality.
+                    \n Example description: This design is a pipelined 4-to-2 priority encoder module. The module has four 1-bit inputs (`I0`, `I1`, `I2`, `I3`) and two 2-bit outputs (`O0`, `O1`). The output is the binary encoding of the highest-priority input that is asserted. If multiple inputs are asserted, the output corresponds to the input with the highest index number. The design uses a pipeline structure to implement this functionality.
+                    \n Now, please change this instruction directly (do not include any pre-fix like `here is a rewritten description): """ + json_content[i]['instruction']},
+                ]
             ]
-        ]
-        try:
-          results = generator.chat_completion(
-              dialogs,
-              max_gen_len=max_gen_len,
-              temperature=temperature,
-              top_p=top_p,
-          )
-          print(results[0]['generation']['content'])
-          # save the results as `rtl_description` in the json file
-          json_content[i]['rtl_description'] = results[0]['generation']['content']
-        except:
-          res += ["" for _ in range(100)]
-          error.append(i)
+            try:
+                results = generator.chat_completion(
+                    dialogs,
+                    max_gen_len=max_gen_len,
+                    temperature=temperature,
+                    top_p=top_p,
+                )
+                print(results[0]['generation']['content'])
+                # save the results as `rtl_description` in the json file
+                json_content[i]['description'] = results[0]['generation']['content']
+            except:
+                res += ["" for _ in range(100)]
+                error.append(i)
 
 
     print("Total error: ", len(error))

@@ -78,7 +78,7 @@ def generate_netlist_graph(rtl_id_i):
         types = ["buf", "and", "or", "xor", "not", "nand", "nor", "xnor", "0", "1", "x", "input", "bb_input", "bb_output"]
         types = {type:i for i, type in enumerate(types)}
         for name, data in G.nodes(data=True):
-            data['type'] = type[data['type']]
+            data['type'] = types[data['type']]
             data['output'] = int(data['output'])
             data['name'] = name # save original name as a new name attribute
         return nx.relabel_nodes(G, {node: i for i, node in enumerate(G.nodes())})
@@ -140,3 +140,6 @@ def generate_netlist_json():
             idx += 1
     with open(f"{LLM_DATA_DIR}/netlist/netlist.json", mode='w') as file:
         json.dump(records_dict, file, indent=4)
+
+
+generate_netlist_graph_multithreads(16)
