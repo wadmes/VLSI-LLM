@@ -2,9 +2,9 @@
 *.json
 *.pkl
 *.log
-*.csv
 *.txt
 *.v
+*.arrow
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

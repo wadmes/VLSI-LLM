@@ -25,3 +25,5 @@ if __name__ == '__main__':
     parser.add_argument('--new_key', type=str, default="description", help='key to be added in json2')
     args = parser.parse_args()
     combine_json(args.json1, args.json2, args.key, args.new_key)
+
+

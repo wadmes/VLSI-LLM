@@ -5,29 +5,90 @@ import json
 import pickle as pkl
 from tqdm import tqdm
 import warnings
+import os
+os.environ['XDG_CACHE_HOME'] = '/home/weili3/.cache'
+os.makedirs('/home/weili3/.cache', exist_ok=True)
 warnings.filterwarnings("ignore", category=UserWarning)
+
+categories = """
+1. Encryption Units: Modules that handle encryption or cryptographic functions.
+2. Data Path Units: Modules involved in data movement, selection, or manipulation (e.g., multiplexers, shifters).
+3. Control Logic Units: Modules responsible for control flow or decision-making in systems (e.g., state machines).
+4. Arithmetic Units: Modules performing arithmetic operations (e.g., adders, subtractors).
+5. Communication Protocol Units: Modules implementing communication protocols (e.g., UART, SPI).
+6. Signal Processing Units: Modules used for signal transformation or filtering.
+7. Clock Management Units: Modules managing clock signals and synchronization.
+8. Other Units: Modules not fitting the above categories.
+"""
+
+example_one = r"""
+Description: "This module is a 4-bit adder with carry-in and carry-out. The module has two 4-bit inputs, a single carry-in input, and a single carry-out output. The output is the sum of the two inputs plus the carry-in."
+Verilog: "module adder (\n    input [3:0] a,\n    input [3:0] b,\n    input cin,\n    output cout,\n    output [3:0] sum\n);\n\n    assign {cout, sum} = a + b + cin;\n\nendmodule"
+Response: "Arithmetic Units"
+"""
+
+example_two = r"""
+Description: "This module is a 2-to-1 multiplexer designed using Verilog. The module has two input ports and one output port. The output is the value of the first input port if the select input is 0, and the value of the second input port if the select input is 1. The design is implemented using only NAND gates."
+Verilog: "module mux_2to1 (\n    input a,\n    input b,\n    input select,\n    output reg out\n);\n\n  wire nand1, nand2, nand3, nand4;\n\n  assign nand1 = ~(a & select);\n  assign nand2 = ~(b & ~select);\n  assign nand3 = ~(nand1 & nand2);\n  assign nand4 = ~(nand3 & nand3);\n\n  always @ (nand4) begin\n    out <= ~nand4;\n  end\n\nendmodule"
+Response: "Data Path Units"
+"""
+
+
+system_setting = f"""\
+You are a professional VLSI digital design engineer. Categorize the following RTL (Register Transfer Level) design descriptions and Verilog code pairs into one of the functional categories below. The response should only contain the most relevant function category:
+
+Functional Categories:{categories}
+Please reply with only the functional category name.
+
+Examples:
+1.{example_one}2.{example_two}
+Now categorize the following RTL description and Verilog code pair:
+"""
+
+
+def predict_function_category(
+    description,
+    verilog,
+    generator,
+    temperature,
+    top_p,
+    max_gen_len: Optional[int] = None,
+):
+    dialogs: List[Dialog] = [
+        [
+            {"role": "system", "content": system_setting},
+            {"role": "user", "content": f"""Description: "{description}"\nVerilog: "{verilog}" """}
+        ]
+    ]
+    try:
+        results = generator.chat_completion(
+            dialogs,
+            max_gen_len=max_gen_len,
+            temperature=temperature,
+            top_p=top_p,
+            logprobs=True,
+        )
+        reply = results[0]['generation']['content']
+        tokens =  results[0]['tokens']
+        logprob =  results[0]['logprobs']
+        return reply, tokens, logprob
+    except:
+        return None, None
+
+def most_frequent(L):
+    return max(set(L), key=L.count)
 
 def main(
     json_path: str, # path to the RTL json file
+    data_file: str, # path to the original RTL json dataset
     ckpt_dir: str, # LLAMA3 checkpoint directory
     tokenizer_path: str, # LLAMA3 tokenizer path
-    temperature: float = 0.6,
-    top_p: float = 0.9,
+    temperature: float = 0,
+    top_p: float = 0,
     max_seq_len: int = 8192,
     max_batch_size: int = 1,
     max_gen_len: Optional[int] = None,
 ):
-    """
-    Examples to run with the models finetuned for chat. Prompts correspond of chat
-    turns between the user and assistant with the final one always being the user.
-
-    An optional system prompt at the beginning to control how the model should respond
-    is also supported.
-
-    The context window of llama3 models is 8192 tokens, so `max_seq_len` needs to be <= 8192.
-
-    `max_gen_len` is optional because finetuned models are able to stop generations naturally.
-    """
     generator = Llama.build(
         ckpt_dir=ckpt_dir,
         tokenizer_path=tokenizer_path,
@@ -37,66 +98,47 @@ def main(
     
     with open(json_path) as f:
        json_content = json.load(f)
-    
+    # verilog_list = []
+    # with open(data_file) as f:
+    #     for _, line in enumerate(f):
+    #         if not line.strip():
+    #             continue
+    #         data = json.loads(line)
+    #         verilog_list.append(data.get("Response", [""])[0])
+    with open(data_file, "rb") as f:
+        verilog_list = pkl.load(f)
+    description_verilog_list = [(int(key), json_content[key]['description'], verilog_list[int(key)]) for key in json_content.keys() if json_content[key]['synthesis_status']]
+
+    i = 0
     res = []
-    error = []
-
-    for i in tqdm(json_content.keys()):
-        dialogs: List[Dialog] = [
-            [
-                {
-                   "role": "user", "content":
-                   """
-                    I will provide you with the instruction of an RTL design. Based on its functionality, structure, and components used, output the most likely category index from the following list as a single digit:
-                    \n1. Encryption Units
-                    \n2. Data Path Units
-                    \n3. Control Logic Unit
-                    \n4. Arithmetic Unit
-                    \n5. Communication Protocol Unit
-                    \n6. Signal Processing Unit
-                    \n7. Clock Management Unit
-                    \n8. Others
-                    \nProvide only a single digit (1-8) representing the category index.
-                    \n
-                    \nHere are two examples:
-                    \n1:
-                    \nInstruction: Design a module that can detect any edge in an 8-bit binary vector and output the binary value of the vector one cycle after the edge is detected. The module should have two input ports: a clock input and an 8-bit binary input port. The output port should be an 8-bit binary vector that represents the input value one cycle after the edge is detected. The module must be designed using a counter and a comparator.
-                    \nExample Response: 3
-                    \n2:
-                    \nInstruction: You are tasked with designing a Verilog module that generates a pseudo-random bit sequence (PRBS) using a linear-feedback shift register (LFSR). The module should have the following inputs and outputs:\n\nInputs:\n- `clk_i`: clock input\n- `clk_en_i`: clock enable input\n- `rst_i`: synchronous reset input\n- `prbs_seed_i`: initial seed for the LFSR\n- `phy_if_empty`: IN_FIFO empty flag\n- `prbs_rdlvl_start`: PRBS read leveling start\n\nOutputs:\n- `prbs_o`: generated PRBS sequence\n\nThe module should use a 64-bit LFSR shift register to generate the PRBS sequence. The LFSR should be reset to the initial seed value provided by `prbs_seed_i` on reset or when `phy_if_empty` is high. The module should generate a PRBS reset signal to ensure that the PRBS sequence repeats after every 2^64 samples. The PRBS reset signal should be asserted on the last sample of the sequence.\n\nThe module should support read leveling by asserting `prbs_rdlvl_start` when the read leveling process starts. During read leveling, the PRBS sequence should continue to be generated, but should not be output on `prbs_o`. Once read leveling is complete, the module should resume outputting the PRBS sequence on `prbs_o`
-                    \nExample Response: 5
-                    \n
-                    \nNow categorize this one:
-                    \ninstruction:
-                    \n
-                    """
-                    + json_content[i]['instruction']
-                },
-            ]
-        ]
-        try:
-            results = generator.chat_completion(
-                dialogs,
-                max_gen_len=max_gen_len,
-                temperature=temperature,
-                top_p=top_p,
-            )
-            res.append((i, results[0]['generation']['content']))
-        except:
-            error.append(i)
-
-
-    print("Total error: ", len(error))
-    with open("/home/weili3/VLSI-LLM/data_collection/label.pkl", "wb") as f:
-        pkl.dump((res, error), f)
+    for i, (idx, description, verilog) in tqdm(enumerate(description_verilog_list)):
+        reply, tokens, logprob = predict_function_category(description, verilog, generator, temperature, top_p, max_gen_len)
+        res.append((i, idx, reply, tokens, logprob))
+        # occur = set()
+        # L = []
+        # for _ in range(10):
+        #     reply = predict_function_category(description, verilog, generator, temperature, top_p, max_gen_len)
+        #     occur.add(reply)
+        #     L.append(reply)
+        # if len(occur) != 1:
+        #     res.append((i, idx, False, most_frequent(L)))
+        # else:
+        #     res.append((i, idx, True, L[0]))
+        with open("/home/weili3/VLSI-LLM/data_collection/llama3-70b_label.pkl", "wb") as f:
+            pkl.dump(res, f)
 
 if __name__ == "__main__":
     fire.Fire(main)
 
 """
-torchrun --nproc_per_node 2 /home/weili3/VLSI-LLM/data_collection/identify_function_label.py
-    --ckpt_dir /home/weili3/llama3/Meta-Llama-3-70B-Instruct-2-shards/
-    --tokenizer_path /home/weili3/llama3/Meta-Llama-3-70B-Instruct/tokenizer.model
-    --max_seq_len 8192 --max_batch_size 1
-    --json_path /home/weili3/VLSI-LLM/data_collection/rtl_data/rtl.json
+torchrun --nproc_per_node 2 /home/weili3/VLSI-LLM/data_collection/identify_function_label.py \
+    --json_path /home/weili3/VLSI-LLM/data_collection/rtl_LLM11442.json \
+    --data_file /home/weili3/VLSI-LLM/data_collection/verilog.pkl \
+    --ckpt_dir /home/weili3/llama3/Meta-Llama-3-70B-Instruct-2-shards/ \
+    --tokenizer_path /home/weili3/llama3/Meta-Llama-3-70B-Instruct/tokenizer.model \
+    --max_seq_len 8192 \
+    --max_batch_size 1
 """
+
+#100 - 7  [(60, 92), (65, 100), (66, 101), (73, 112), (78, 119), (81, 125), (90, 136)]
+#100 - 11 [(19, 29), (60, 92), (63, 98), (65, 100), (66, 101), (71, 109), (73, 112), (74, 114), (78, 119), (81, 125), (90, 136)], [(101, 151), (103, 154), (115, 176), (119, 180), (120, 185), (125, 192), (137, 205), (149, 219), (153, 228), (155, 230), (156, 231), (164, 245), (168, 249), (181, 272), (188, 281), (192, 289), (194, 291), (197, 294)]
