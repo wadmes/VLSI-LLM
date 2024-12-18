@@ -1,3 +1,6 @@
+"""
+fig. 3 in the paper
+"""
 import json
 import pandas as pd
 import seaborn as sns

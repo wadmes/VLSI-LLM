@@ -1,3 +1,6 @@
+"""
+fig. 6 in the paper
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
