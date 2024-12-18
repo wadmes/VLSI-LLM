@@ -1,3 +1,10 @@
+"""
+data generation step 2
+This script performs RTL synthesis in parallel using a custom iterator to process RTL datasets. It dynamically loads 
+a user-defined iterator function to parse RTL data, writes RTL code and related information to output directories, 
+and runs synthesis efforts with configurable time limits. Results (success, timeout, or failure) are logged and saved 
+incrementally for fault tolerance. The synthesis tasks are distributed across multiple processes for efficiency.
+"""
 import os
 import typer
 import subprocess
@@ -7,7 +14,7 @@ import multiprocessing as mp
 from tqdm import tqdm
 from pathlib import Path
 from itertools import product
-from typing import List, Tuple, Callable
+from typing import Tuple, Callable
 
 DEFAULT_SYNTHESIS_TIMELIMIT = 3600
 DEFAULT_NUM_PROCESSES = 1
@@ -103,13 +110,13 @@ def process_rtl(args: Tuple[int, str, str, Path, int, Path]) -> Tuple[int, int]:
     return synthesize_rtl(idx, rtl_output_dir / "syn", synthesis_timelimit, synthesis_lib)
 
 def main(
-    iterator_file: Path = typer.Option(..., help="Path to the file containing the custom iterator function."),
-    dataset_path: Path = typer.Option(..., help="Path to the Hugging Face dataset folder."),
-    output_dir: Path = typer.Option(..., help="Directory where synthesis results will be saved."),
-    synthesis_lib: Path = typer.Option(..., help="Path to the library used for Genus synthesis."),
-    synthesis_timelimit: int = typer.Option(DEFAULT_SYNTHESIS_TIMELIMIT, help="Timelimit for each synthesis process (in seconds)."),
-    num_processes: int = typer.Option(DEFAULT_NUM_PROCESSES, help="Number of processes to do synthesis."),
-    prompt_type: bool = typer.Option(True, help="Whether the RTL's related information is instruction (True) or description (False).")
+    iterator_file: Path = typer.Option(..., help="Path to the custom iterator function for loading dataset."),
+    dataset_path: Path = typer.Option(..., help="Path to the RTL dataset."),
+    data_dir: Path = typer.Option(..., help="Base directory where all relevent outputs, including synthesis results, will be saved."),
+    synthesis_lib: Path = typer.Option(..., help="Path to the Genus synthesis standard cell lib."),
+    synthesis_timelimit: int = typer.Option(DEFAULT_SYNTHESIS_TIMELIMIT, help="Time limit (s) for each synthesis process."),
+    num_processes: int = typer.Option(DEFAULT_NUM_PROCESSES, help="Number of parallel processes."),
+    prompt_type: bool = typer.Option(True, "--instruction/--description", help="Whether the RTL's related prompt is instruction (--instruction) or description (--description).")
 ):
     """
     Main function for RTL synthesis using multiprocessing.
@@ -119,15 +126,15 @@ def main(
     handling by saving intermediate results and reporting synthesis success, timeout, or failure statistics.
 
     Args:
-        iterator_file (Path): Path to the file containing the custom iterator function for dataset parsing.
-        dataset_path (Path): Path to the dataset folder containing RTL data (e.g., JSON or structured dataset).
-        output_dir (Path): Directory where synthesis results and logs will be saved.
-        synthesis_lib (Path): Path to the synthesis library file (e.g., for Genus synthesis).
-        synthesis_timelimit (int): Time limit in seconds for each synthesis process to avoid long runs.
-        num_processes (int): Number of parallel processes to spawn for synthesis.
-        prompt_type (bool): Flag indicating if the RTL's related information is an instruction (True) or description (False).
+        iterator_file (Path): Path to the custom iterator function for loading dataset.
+        dataset_path (Path): Path to the RTL dataset.
+        data_dir (Path): Base directory where all relevent outputs, including synthesis results, will be saved.
+        synthesis_lib (Path): Path to the Genus synthesis standard cell lib.
+        synthesis_timelimit (int): Time limit (s) for each synthesis process.
+        num_processes (int): Number of parallel processes.
+        prompt_type (bool): Flag indicating if the RTL's related information is an instruction or description.
     """
-    output_dir = output_dir / 'synthesis'
+    output_dir = data_dir / 'synthesis'
     output_dir.mkdir(parents=True, exist_ok=True)
 
     rtl_itr_func = load_custom_iterator(iterator_file)

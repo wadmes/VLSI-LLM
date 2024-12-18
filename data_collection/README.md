@@ -2,7 +2,72 @@
 This directory contains the code and guide documents that automates the data collection process.
 
 ## Data Generation
-TODO (Add the data generation process, (scripts, how to run, etc))
+
+### 1. Loading Dataset
+Define a custom iterator function to yield tuples of index, instruction/description and Verilog code from the dataset. `iterator_MGVerilog.py` and `iterator_RTLCoder.py` are two iterator functions used to produce datasets in our paper.
+
+### 2. Synthesis 
+Synthesize RTL designs in the dataset. `iterator_file` is the custom iterator for loading the intended dataset `dataset_path`. Create a base directory `data_dir` to store all synthesis results and other flow outputs. `synthesis_lib` is the custom standard cell library compatible with the Genus synthesis tool. `prompt_type` is the text paired with each RTL design in the original dataset (instruction and description are supported in this flow). A synthesis summary -- a tuple `(success, timeout, failure)` where each element is a list of indices -- will be saved at `data_dir/synthesis/synthesis_result.pkl`.
+```
+python flow/synthesize.py \
+    --iterator-file flow/iterator_RTLCoder.py \
+    --dataset-path Resyn27k.json \
+    --data-dir RTLCoder26532/ \
+    --synthesis-lib standard_cells.lib \
+    --synthesis-timelimit 1800 \
+    --num-processes 8 \
+    --instruction
+```
+
+### 3. PyVerilog Analysis (Optional)
+Use PyHDI's PyVerilog to analyze all RTL designs. Then, generate a NetworkX graph for the dataflow of each module in an RTL design, developed based on PyVerilog. `parser` is used to parse the Verilog and to detect syntax errors. `dataflow_analyzer` is used to analyze the dataflow in the Verilog. `dataflow_graph_generator` (the one used in our paper can be found `flow/networkx_dataflow_graphgen.py`) is used to generate the module-wise dataflow graph in NetworkX format. A analysis summary -- a tuple `(syntax_success, syntax_fail, dataflow_success, dataflow_fail)` where `syntax_success` and `syntax_fail` are lists of indices, `dataflow_success` and `dataflow_fail` are lists of `(index, module_name)` pairs -- will be saved at `data_dir/synthesis/synthesis_result.pkl`. (The `parser` and `dataflow_analyzer` we used are PyVerilog's original examples.)
+
+```
+python flow/pyverilog.py \
+    --num-data 26532 \
+    --synthesis-dir RTLCoder26532/synthesis/ \
+    --data-dir RTLCoder26532/ \
+    --parser /Pyverilog/examples/example_parser.py \
+    --dataflow-analyzer /Pyverilog/examples/example_dataflow_analyzer.py \
+    --dataflow-graph-generator /Pyverilog/examples/networkx_dataflow_graphgen.py \
+    --analysis-time-limit 30
+```
+
+### 4. Circuit Unit Type Identification (Optional)
+Utilize local Llama3 and GPT API to predict circuit types and check prediction consistency. OpenAI key should be set beforehand using `export OPENAI_API_KEY="your_api_key_here"`. Llama3 should be set locally according to [https://github.com/meta-llama/llama3/]. The prediction results will be save at `data_dir/rtl_data/Llama3_70b_label.pkl` and `data_dir/rtl_data/GPT_4o_label.pkl`.
+```
+torchrun --nproc_per_node 2 flow/predict_circuit_type.py \
+    --data_dir RTLCoder26532/ \
+    --instruction
+    --ckpt_dir /llama3/Meta-Llama-3-70B-Instruct-2-shards/ \
+    --tokenizer_path /llama3/Meta-Llama-3-70B-Instruct/tokenizer.model \
+    --max_seq_len 8192 \
+    --max_batch_size 1
+```
+
+### 5. RTL JSON Generation
+Use all relevant outputs up to this point to generate a JSON containing all information. Synthesis is the only required step for JSON generation.
+
+```
+python flow/generate_rtl_json.py \
+    --data-dir RTLCoder26532/ \
+    --pyverilog-result-file RTLCoder26532/pyverilog/analysis.pkl \
+    --type-prediction \
+    --instruction
+```
+
+
+### 6. RTL Instruction to Description (Optional)
+For some datasets that come with RTL instructions, this script can be run to generate descriptions by using local Llama3. This should only be run on the generated RTL JSON file.
+```
+torchrun --nproc_per_node 2 flow/inst2desc_json.py \
+    --json_path RTLCoder26532/rtl_data/rtl.json \
+    --ckpt_dir /llama3/Meta-Llama-3-70B-Instruct-2-shards/ \
+    --tokenizer_path /llama3/Meta-Llama-3-70B-Instruct/tokenizer.model \
+    --max_seq_len 8192 \
+    --max_batch_size 1 
+```
+
 
 ## Data Format
 The processed data includes these files:

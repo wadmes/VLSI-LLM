@@ -1,3 +1,9 @@
+"""
+data generation step 3
+This script performs Verilog RTL analysis using PyVerilog tools. It analyzes Verilog files for syntax correctness, 
+extracts module-level dataflow information, and generates dataflow graphs for each module. Results, including 
+successes and failures for syntax and dataflow analysis, are logged and saved incrementally for fault tolerance.
+"""
 import re
 import os
 import typer

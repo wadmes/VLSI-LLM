@@ -1,3 +1,11 @@
+"""
+data generation step 5
+This script processes Verilog RTL files, anonymizes module names, and compiles a JSON file containing detailed metadata 
+about each RTL. It integrates synthesis results, optional PyVerilog analysis results, and optional type predictions to 
+provide a comprehensive dataset for further use. The script supports copying dataflow graph files, handling 
+instruction/description prompts, and aligning type predictions from multiple models.
+"""
+
 import re
 import json
 import typer
@@ -37,9 +45,9 @@ def anonymize_modules(verilog_code):
     return anonymized_code, module_mapping
 
 def main(
-    data_dir: Path = typer.Option(..., help="Data folder."),
+    data_dir: Path = typer.Option(..., help="Base directory where all relevent outputs are stored."),
     pyverilog_result_file: Path = typer.Option(None, help="Pickle file that stores the pyverilog result summary."),
-    label_file: Path = typer.Option(None, help="Pickle file that stores the function label prediction."),
+    type_prediction: Path = typer.Option(None, help="Pickle file that stores the function type prediction."),
     prompt_type: bool = typer.Option(True, "--instruction/--description", help="Whether the RTL's related prompt is instruction (--instruction) or description (--description).")
 ):
     """
@@ -48,7 +56,7 @@ def main(
     Args:
         data_dir (Path): Base directory containing synthesis results and output folders.
         pyverilog_result_file (Path): Pickle file with pyverilog result summary.
-        label_file (Path): Pickle file with function label predictions.
+        type_prediction (Path): Pickle file with function type predictions.
     """
     with open(data_dir / "synthesis/synthesis_result.pkl", 'rb') as f:
         success, timeout, fail = pkl.load(f)
@@ -63,11 +71,9 @@ def main(
         graph_folder.mkdir(parents=True, exist_ok=True)
         for idx, module_name in dataflow_success:
             shutil.copy(data_dir / f"pyverilog/{idx}/{module_name}.pkl", graph_folder / f"{idx}_{module_name}.pkl")
-        dataflow_success = [idx for idx, _ in dataflow_success]
-        dataflow_success = list(set(dataflow_success))
 
-    if label_file:
-        with open(label_file, 'rb') as f:
+    if type_prediction:
+        with open(type_prediction, 'rb') as f:
             gpt_label, llama_label = pkl.load(f)
 
     is_first_entry = True
@@ -89,7 +95,8 @@ def main(
                 prompt = file.read()
 
         record = {
-            'verilog': anonymized_verilog,
+            'verilog': verilog,
+            'anonymized_verilog': anonymized_verilog,
             'name_mapping': module_mapping,
             'instruction': prompt if prompt_type else '',
             'description': prompt if not prompt_type else '',
@@ -97,8 +104,8 @@ def main(
         }
         
         if pyverilog_result_file:
-            record['dataflow_status'] = rtl_id in dataflow_success
-        if label_file:
+            record['dataflow_status'] = all((rtl_id, module_name) in dataflow_success for module_name in list(module_mapping.keys()))
+        if type_prediction:
             record['consistent_label'] = gpt_label[rtl_id] if (rtl_id in success) and (gpt_label[rtl_id] == llama_label[rtl_id]) else ''
             record['GPT_4o_label'] = gpt_label[rtl_id] if (rtl_id in success) else ''
             record['Llama3_70b_label'] = llama_label[rtl_id] if (rtl_id in success) else ''

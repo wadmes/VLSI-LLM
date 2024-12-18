@@ -1,3 +1,7 @@
+"""
+data generation step 1
+iterator function to load MGVerilof RTL data from the Hugging Face Dataset object
+"""
 import re
 from tqdm import tqdm
 from datasets import load_from_disk

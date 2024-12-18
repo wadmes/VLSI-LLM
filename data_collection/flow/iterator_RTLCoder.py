@@ -1,3 +1,7 @@
+"""
+data generation step 1
+iterator function to load RTLCoder RTL data from the json file
+"""
 import json
 
 def iterator_RTLCoder(json_file_path):
