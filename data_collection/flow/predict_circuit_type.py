@@ -1,4 +1,5 @@
 """
+data generation step 4
 This script predicts the functional category of RTL (Register Transfer Level) designs and 
 their Verilog code using two models: LLAMA3 and GPT-4o. It processes synthesis results, 
 generates predictions for each design, and stores the results in labeled output files. 

@@ -58,7 +58,7 @@ python flow/generate_rtl_json.py \
 
 
 ### 6. RTL Instruction to Description (Optional)
-For some datasets that come with RTL instructions, this script can be run to generate descriptions by using local Llama3. This should only be run on the generated RTL JSON file.
+For some datasets that come with RTL instructions, this script can be run to generate descriptions by using local Llama3. This should only be run on the generated RTL JSON file in step 5. `"description"` and `"instruction"` fields are initialized in the JSON file while being left empty if there is no information yet.
 ```
 torchrun --nproc_per_node 2 flow/inst2desc_json.py \
     --json_path RTLCoder26532/rtl_data/rtl.json \

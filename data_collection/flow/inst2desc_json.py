@@ -1,4 +1,5 @@
 """
+data generation step 6
 This script processes a JSON file containing design instructions, converts each instruction
 into a descriptive tone using the LLAMA3 model, and updates the JSON file with the generated
 descriptions.
