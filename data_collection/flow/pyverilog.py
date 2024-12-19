@@ -130,7 +130,7 @@ def main(
             syntax_fail.append(idx)
         dataflow_success += result[1]
         dataflow_fail += result[2]
-        with open(output_dir / "analysis.pkl", 'wb') as f:
+        with open(output_dir / "pyverilog_analysis.pkl", 'wb') as f:
             pkl.dump((syntax_success, syntax_fail, dataflow_success, dataflow_fail), f)
 
 if __name__ == "__main__":

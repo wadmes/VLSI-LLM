@@ -1,3 +1,10 @@
+"""
+data generation step 9
+This script organizes and documents successful netlist files from synthesis results.
+It filters out failed netlist processes, copies the associated Verilog and log files
+into designated directories, and generates a JSON record of successful netlist metadata.
+"""
+
 import json
 import shutil
 import pickle as pkl
@@ -6,7 +13,9 @@ from pathlib import Path
 from itertools import product
 import typer
 
-def generate_netlist_json(data_dir: Path) -> None:
+def main(
+    data_dir: Path = typer.Option(..., help="Path to the base data directory.")
+) -> None:
     """
     Generate a JSON record of successful netlist files and copy Verilog and log files 
     to designated directories.
@@ -17,11 +26,11 @@ def generate_netlist_json(data_dir: Path) -> None:
     """
     with open(data_dir / "synthesis/synthesis_result.pkl", 'rb') as f:
         success, _, _ = pkl.load(f)
-    with open(data_dir / "netlist/netlist_graphgen_fail.pkl", 'rb') as f:
+    with open(data_dir / "netlist_data/netlist_graphgen_fail.pkl", 'rb') as f:
         fail = pkl.load(f)
 
-    netlist_verilog_dir = data_dir / "netlist/verilog"
-    synthesis_log_dir = data_dir / "netlist/synthesis_log"
+    netlist_verilog_dir = data_dir / "netlist_data/verilog"
+    synthesis_log_dir = data_dir / "netlist_data/synthesis_log"
     netlist_verilog_dir.mkdir(parents=True, exist_ok=True)
     synthesis_log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -44,23 +53,10 @@ def generate_netlist_json(data_dir: Path) -> None:
             }
             idx += 1
 
-    with open(data_dir / "netlist/netlist.json", mode='w') as file:
+    with open(data_dir / "netlist_data/netlist.json", mode='w') as file:
         json.dump(records_dict, file, indent=4)
 
     print(f"Netlist JSON generated successfully!")
-
-
-def main(
-    data_dir: Path = typer.Option(..., help="Path to the base data directory.")
-):
-    """
-    Main entry point to generate a JSON file of successful netlists and copy Verilog files.
-
-    Args:
-        data_dir (Path): Base directory containing synthesis results and output folders.
-    """
-    generate_netlist_json(data_dir)
-
 
 if __name__ == "__main__":
     typer.run(main)

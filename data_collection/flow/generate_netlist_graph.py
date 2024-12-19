@@ -1,3 +1,26 @@
+"""
+data generation step 8
+This script processes Verilog netlist files into anonymized graph representations
+of digital circuits, leveraging multiprocessing for efficiency. It cleans up module
+names, generates graphs, anonymizes node attributes, and handles various synthesis
+effort levels. Anonymization of node attributes is based on this following mapping:
+types = [
+    "buf": 0,
+    "and": 1,
+    "or": 2,
+    "xor": 3,
+    "not": 4,
+    "nand": 5,
+    "nor": 6,
+    "xnor": 7,
+    "0": 8,
+    "1": 9,
+    "x": 10,
+    "input": 11,
+    "bb_input": 12,
+    "bb_output": 13
+]
+"""
 import os
 import networkx as nx
 import circuitgraph as cg
@@ -25,13 +48,6 @@ def process_netlist(args: Tuple[int, str, Path]) -> Optional[Tuple[int, str]]:
     """
 
     def remove_module_suffix(verilog_file: Path, output_file: Path) -> None:
-        """
-        Removes '_module' suffix from module names in a Verilog file.
-
-        Args:
-            verilog_file (Path): Input Verilog file path.
-            output_file (Path): Output Verilog file path.
-        """
         with open(verilog_file, 'r') as file:
             verilog_code = file.read()
         updated_verilog_code = verilog_code.replace('_module', '')
@@ -39,15 +55,6 @@ def process_netlist(args: Tuple[int, str, Path]) -> Optional[Tuple[int, str]]:
             output.write(updated_verilog_code)
 
     def anonymize_graph(G: nx.DiGraph) -> nx.DiGraph:
-        """
-        Anonymizes graph nodes by replacing their 'type' and relabeling the nodes.
-
-        Args:
-            G (nx.DiGraph): The circuit graph.
-
-        Returns:
-            nx.DiGraph: The anonymized graph.
-        """
         types = ["buf", "and", "or", "xor", "not", "nand", "nor", "xnor", "0", "1", "x", "input", "bb_input", "bb_output"]
         type_mapping = {type_: i for i, type_ in enumerate(types)}
 
@@ -59,7 +66,7 @@ def process_netlist(args: Tuple[int, str, Path]) -> Optional[Tuple[int, str]]:
 
     rtl_id, effort, data_dir = args
     syn_path = data_dir / f"synthesis/{rtl_id}/syn/{effort}"
-    graph_output_file = data_dir / f"netlist/graph/{rtl_id}_{effort}.pkl"
+    graph_output_file = data_dir / f"netlist_data/graph/{rtl_id}_{effort}.pkl"
     bboxes = [cg.io.BlackBox("f", ["CK", "D"], ["Q"])] + cg.io.genus_flops + cg.io.dc_flops
 
     try:
@@ -76,8 +83,10 @@ def process_netlist(args: Tuple[int, str, Path]) -> Optional[Tuple[int, str]]:
     
     return None
 
-
-def generate_netlist_graph_multithreads(num_cores: int, data_dir: Path) -> None:
+def main(
+    num_cores: int = typer.Option(4, help="Number of CPU cores to use for multiprocessing."),
+    data_dir: Path = typer.Option(..., help="Base directory where all relevent outputs are stored.")
+) -> None:
     """
     Collect netlist graphs by processing Verilog files in parallel and saving results.
 
@@ -88,7 +97,7 @@ def generate_netlist_graph_multithreads(num_cores: int, data_dir: Path) -> None:
     with open(data_dir / "synthesis/synthesis_result.pkl", 'rb') as f:
         success, _, _ = pkl.load(f)
 
-    netlist_dir = data_dir / "netlist"
+    netlist_dir = data_dir / "netlist_data"
     netlist_graph_dir = netlist_dir / "graph"
     netlist_graph_dir.mkdir(parents=True, exist_ok=True)
 
@@ -104,22 +113,6 @@ def generate_netlist_graph_multithreads(num_cores: int, data_dir: Path) -> None:
         pkl.dump(fail, f)
 
     print(f"Graph processing complete. Failures: {len(fail)}")
-
-
-def main(
-    num_cores: int = typer.Option(4, help="Number of CPU cores to use for multiprocessing."),
-    data_dir: Path = typer.Option(..., help="Path to the base directory containing synthesis results.")
-):
-    """
-    Entry point to generate and process netlist graphs from synthesis results.
-
-    Args:
-        num_cores (int): Number of CPU cores to utilize for parallel processing.
-        data_dir (Path): Base directory containing synthesis result and output folders.
-    """
-    generate_netlist_graph_multithreads(num_cores, data_dir)
-    print("Netlist graph generattion complete!")
-
 
 if __name__ == "__main__":
     typer.run(main)

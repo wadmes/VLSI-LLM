@@ -1,8 +1,14 @@
-import json
-import pickle as pkl
-import csv
-from tqdm import tqdm
+"""
+data generation step 7
+collect all metadata related to rtl and generate a csv file
+"""
 import os
+import csv
+import json
+import typer
+import pickle as pkl
+from pathlib import Path
+from tqdm import tqdm
 
 def get_file_length(file_path):
     with open(file_path, 'r') as file:
@@ -33,34 +39,33 @@ def extract_dataflow_graph_info(G):
         "type_distribution": type_distribution,
     }
 
-def create_csv_from_rtl_data(netlist_json, csv_file_path, netlist_data_dir, synthesis_dir):
-    with open(netlist_json, "r") as file:
-        data = json.load(file)
-    file_exists = os.path.isfile(csv_file_path)
-    with open(csv_file_path, mode='a', newline='') as file:
+def main(
+    data_dir: Path = typer.Option(..., help="Base directory where all relevent outputs are stored."),
+):
+    with open(data_dir / "rtl_data/rtl.csv", mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        if not file_exists:
-            header = [
-                "rtl_id", "module_number", "module_name_list", "dataflow_status", "synthesis_status",
-                "4o_label", "70b_label", "consistent_label", "verilog_file_length", "#dataflow_node", "#dataflow_edge",
-                "dataflow_node_type_distribution", "dataflow_node_in_degree_distribution", "dataflow_node_out_degree_distribution"
-            ]
-            writer.writerow(header)
+        header = [
+            "rtl_id", "module_number", "module_name_list", "dataflow_status", "synthesis_status",
+            "GPT_4o_label", "Llama3_70b_label", "consistent_label", "verilog_file_length", "#dataflow_node", "#dataflow_edge",
+            "dataflow_node_type_distribution", "dataflow_node_in_degree_distribution", "dataflow_node_out_degree_distribution"
+        ]
+        writer.writerow(header)
+        with open(data_dir / "rtl_data/rtl.json", "r") as file:
+            data = json.load(file)
         for idx, v in tqdm(data.items()):
             rtl_id = int(idx)
             module_names = list(v['name_mapping'].keys())
-            dataflow_status = all(os.path.isfile(f"{netlist_data_dir}/dataflow_graph/{rtl_id}_{module}.pkl") for module in module_names)
-            verilog_file_length = get_file_length(f"{synthesis_dir}/{idx}/rtl.v")
-            dataflow_status = 1 if dataflow_status else 0
+            dataflow_status = 1 if v['dataflow_status'] else 0
             synthesis_status = 1 if v['synthesis_status'] else 0
+            verilog_file_length = get_file_length(data_dir / f"synthesis/{idx}/rtl.v")
             total_nodes = 0
             total_edges = 0
             total_type_distribution = {}
             total_in_degree_distribution = {}
             total_out_degree_distribution = {}
             for module in module_names:
-                if os.path.isfile(f"{netlist_data_dir}/dataflow_graph/{rtl_id}_{module}.pkl"):
-                    with open(f"{netlist_data_dir}/dataflow_graph/{rtl_id}_{module}.pkl", "rb") as graph_file:
+                if os.path.isfile(data_dir / f"rtl_data/dataflow_graph/{rtl_id}_{module}.pkl"):
+                    with open(data_dir / f"rtl_data/dataflow_graph/{rtl_id}_{module}.pkl", "rb") as graph_file:
                         graph = pkl.load(graph_file)
                         graph_info = extract_dataflow_graph_info(graph)
                         total_nodes += graph_info["node_count"]
@@ -73,7 +78,10 @@ def create_csv_from_rtl_data(netlist_json, csv_file_path, netlist_data_dir, synt
                             total_out_degree_distribution[key] = total_out_degree_distribution.get(key, 0) + value
             row = [
                 rtl_id, len(module_names), module_names, dataflow_status, synthesis_status,
-                v['4o_label'], v['70b_label'], v['consistent_label'], verilog_file_length,
+                v['GPT_4o_label'], v['Llama3_70b_label'], v['consistent_label'], verilog_file_length,
                 total_nodes, total_edges, total_type_distribution, total_in_degree_distribution, total_out_degree_distribution
             ]
             writer.writerow(row)
+
+if __name__ == "__main__":
+    typer.run(main)

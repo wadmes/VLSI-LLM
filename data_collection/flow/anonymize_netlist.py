@@ -1,8 +1,7 @@
 """
+data generation step 10
 This script anonymizes Verilog netlist files by renaming module definitions and their instantiations. 
 It processes all Verilog files (*.v) in a specified input folder and saves anonymized versions to an output folder. 
-The output folder is created if it doesn't exist, and all references to original module names are updated 
-to ensure consistency in the anonymized files.
 """
 import re
 import typer

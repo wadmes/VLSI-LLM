@@ -2,8 +2,7 @@
 data generation step 5
 This script processes Verilog RTL files, anonymizes module names, and compiles a JSON file containing detailed metadata 
 about each RTL. It integrates synthesis results, optional PyVerilog analysis results, and optional type predictions to 
-provide a comprehensive dataset for further use. The script supports copying dataflow graph files, handling 
-instruction/description prompts, and aligning type predictions from multiple models.
+provide a comprehensive dataset for further use.
 """
 
 import re
@@ -46,8 +45,6 @@ def anonymize_modules(verilog_code):
 
 def main(
     data_dir: Path = typer.Option(..., help="Base directory where all relevent outputs are stored."),
-    pyverilog_result_file: Path = typer.Option(None, help="Pickle file that stores the pyverilog result summary."),
-    type_prediction: Path = typer.Option(None, help="Pickle file that stores the function type prediction."),
     prompt_type: bool = typer.Option(True, "--instruction/--description", help="Whether the RTL's related prompt is instruction (--instruction) or description (--description).")
 ):
     """
@@ -55,8 +52,7 @@ def main(
 
     Args:
         data_dir (Path): Base directory containing synthesis results and output folders.
-        pyverilog_result_file (Path): Pickle file with pyverilog result summary.
-        type_prediction (Path): Pickle file with function type predictions.
+        prompt_type (bool): Flag indicating if the RTL's related information is an instruction or description.
     """
     with open(data_dir / "synthesis/synthesis_result.pkl", 'rb') as f:
         success, timeout, fail = pkl.load(f)
@@ -64,17 +60,29 @@ def main(
     output_file = data_dir / "rtl_data/rtl.json"
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    if pyverilog_result_file:
+    pyverilog_result_file = data_dir / "pyverilog/pyverilog_analysis.pkl"
+    if pyverilog_result_file.exists():
         with open(pyverilog_result_file, 'rb') as f:
             _, _, dataflow_success, _ = pkl.load(f)
         graph_folder = data_dir / "rtl_data/dataflow_graph/"
         graph_folder.mkdir(parents=True, exist_ok=True)
         for idx, module_name in dataflow_success:
             shutil.copy(data_dir / f"pyverilog/{idx}/{module_name}.pkl", graph_folder / f"{idx}_{module_name}.pkl")
-
+    
+    llama_prediction = data_dir / "rtl_data/Llama3_70b_label.pkl"
+    gpt_prediction = data_dir / "rtl_data/GPT_4o_label.pkl"
+    type_prediction = llama_prediction.exists() and gpt_prediction.exists()
     if type_prediction:
-        with open(type_prediction, 'rb') as f:
-            gpt_label, llama_label = pkl.load(f)
+        with open(llama_prediction, 'rb') as f:
+            results = pkl.load(f)
+        llama_label = {}
+        for idx, label, _, _ in results:
+            llama_label[idx] = label
+        with open(gpt_prediction, 'rb') as f:
+            results = pkl.load(f)
+        gpt_label = {}
+        for idx, label, _ in results:
+            gpt_label[idx] = label
 
     is_first_entry = True
     with open(output_file, mode='w') as file:
@@ -103,7 +111,7 @@ def main(
             'synthesis_status': rtl_id in success,
         }
         
-        if pyverilog_result_file:
+        if pyverilog_result_file.exists():
             record['dataflow_status'] = all((rtl_id, module_name) in dataflow_success for module_name in list(module_mapping.keys()))
         if type_prediction:
             record['consistent_label'] = gpt_label[rtl_id] if (rtl_id in success) and (gpt_label[rtl_id] == llama_label[rtl_id]) else ''
