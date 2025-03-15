@@ -10,13 +10,13 @@ import numpy as np
 def accuracy_comparison(output_path):
     matplotlib.rcParams['font.family'] = 'Arial'
     data = {
-        "Model": ["RTL", "Netlist", "RTL", "Netlist", "RTL",  "Netlist", "Netlist", "Netlist", "Netlist"],
-        "Accuracy": [78.70, 52.98, 46.85, 32.48, 14.33, 10.24, 59.09, 55.14, 72.97],
+        "Model": ["RTL", "Netlist", "RTL", "Netlist", "RTL",  "Netlist", "Netlist", "Netlist", "Netlist", "Netlist"],
+        "Accuracy": [78.70, 52.98, 46.85, 32.48, 14.33, 10.24, 66.2, 59.09, 55.14, 72.97],
         "Type": [
             "GPT-4o", "GPT-4o",
             "Llama3.1-8B", "Llama3.1-8B",
             "Llama3.2-3B", "Llama3.2-3B",
-            "BRIDGES_no_lora", "BRIDGES_no_stage1", "BRIDGES"
+            "BRIDGES_no_qformer", "BRIDGES_no_lora", "BRIDGES_no_stage1", "BRIDGES"
         ],
     }
 
@@ -34,13 +34,14 @@ def accuracy_comparison(output_path):
         "GPT-4o": "#74AA9C",  # GPT Green
         "Llama3.1-8B": "#629CD3",  # Llama Blue
         "Llama3.2-3B": "#ADD8E6",  # Llama Blue
+        "BRIDGES_no_qformer": "#FFDBB6",  # Lighter Orange
         "BRIDGES_no_lora": "#EEB886",  # Light Orange
         "BRIDGES": "#F46A12",  # Dark Orange
         "BRIDGES_no_stage1": "#FF935D",  # Medium Orange
         "white": "#FFFFFF",  # Medium Orange
     }
 
-    p = [[0.3, 0.82], [0.42, 0.94], [0.54, 1.06], [0.4, 1.18], [0.6, 1.30], [0.8, 1.42]]
+    p = [[0.3, 0.82], [0.42, 0.94], [0.54, 1.06], [0.4, 1.18], [0.6, 1.30], [0.8, 1.42], [1.0, 1.54]]
     bar_width = 0.1
 
     plt.figure(figsize=(8, 4))
@@ -58,7 +59,7 @@ def accuracy_comparison(output_path):
             linewidth=1
         )
 
-    plt.xticks(np.array([0.42, 1.12]), models, fontsize=18, fontname="Arial")
+    plt.xticks(np.array([0.42, 1.18]), models, fontsize=18, fontname="Arial")
     plt.xlim(0.1, 1.6)
     plt.xlabel("Input level", fontsize=18, fontname="Arial")
     plt.xticks(fontsize=16, fontname="Arial")
@@ -72,11 +73,11 @@ def accuracy_comparison(output_path):
         if height > 0:
             plt.text(
                 p.get_x() + p.get_width() / 2.,
-                height + 1,
+                height,
                 f"{height:.1f}",
                 ha="center",
                 va="bottom",
-                fontsize=19
+                fontsize=18
             )
 
     plt.legend(
@@ -84,12 +85,14 @@ def accuracy_comparison(output_path):
             Patch(color=color_map["GPT-4o"], label="GPT-4o"),
             Patch(color=color_map["Llama3.1-8B"], label="Llama3-8B"),
             Patch(color=color_map["Llama3.2-3B"], label="Llama3-3B"),
+            Patch(color=color_map["white"], label=""),
+            Patch(color=color_map["BRIDGES_no_qformer"], label="BRIDGES_no_qformer"),
             Patch(color=color_map["BRIDGES_no_lora"], label="BRIDGES_no_lora"),
             Patch(color=color_map["BRIDGES_no_stage1"], label="BRIDGES_no_stage1"),
             Patch(color=color_map["BRIDGES"], label="BRIDGES"),
         ],
         loc="upper center",
-        bbox_to_anchor=(0.53, 1.07),
+        bbox_to_anchor=(0.52, 1.08),
         ncol=2,
         fontsize=15,
         columnspacing=0.5,handletextpad=0.2,
@@ -103,3 +106,7 @@ def accuracy_comparison(output_path):
     plt.gca().spines["bottom"].set_linewidth(1.5)
     plt.savefig(output_path, format="pdf", bbox_inches="tight")
     plt.close()
+
+
+if __name__ == "__main__":
+    accuracy_comparison("accuracy_comparison.pdf")
