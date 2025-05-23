@@ -31,7 +31,7 @@ def anonymize_modules(verilog_code):
         nonlocal counter
         original_module_name = match.group(2)
         anonymized_module_name = f"anonymized_module_{counter}"
-        module_mapping[original_module_name] = anonymized_module_name
+        module_mapping[anonymized_module_name] = original_module_name
         counter += 1
         return f"{match.group(1)}{anonymized_module_name}{match.group(3)}"
 
@@ -90,7 +90,7 @@ def main(
     for rtl_id in tqdm(range(len(success) + len(timeout) + len(fail))):
         rtl_path = data_dir / f"synthesis/{rtl_id}"
 
-        with open(rtl_path / "rtl.v", 'r') as file:
+        with open(rtl_path / "rtl.sv", 'r') as file:
             verilog = file.read()
 
         anonymized_verilog, module_mapping = anonymize_modules(verilog)
@@ -105,14 +105,15 @@ def main(
         record = {
             'verilog': verilog,
             'anonymized_verilog': anonymized_verilog,
-            'name_mapping': module_mapping,
+            'mapping': module_mapping,
             'instruction': prompt if prompt_type else '',
             'description': prompt if not prompt_type else '',
             'synthesis_status': rtl_id in success,
         }
         
         if pyverilog_result_file.exists():
-            record['dataflow_status'] = all((rtl_id, module_name) in dataflow_success for module_name in list(module_mapping.keys()))
+            module_keys = list(module_mapping.keys())
+            record['dataflow_status'] = bool(module_keys) and all((rtl_id, module_name) in dataflow_success for module_name in module_keys)
         if type_prediction:
             record['consistent_label'] = gpt_label[rtl_id] if (rtl_id in success) and (gpt_label[rtl_id] == llama_label[rtl_id]) else ''
             record['GPT_4o_label'] = gpt_label[rtl_id] if (rtl_id in success) else ''

@@ -47,7 +47,7 @@ def main(
     with open(data_dir / "netlist_data/netlist.csv", mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         header = [
-            "id", "rtl_id", "generic_effort", "mapping_effort", "optimization_effort",
+            "id", "rtl_id", "generic_effort", "mapping_effort", "optimization_effort", "graphgen_status",
             "#input", "#output", "#node", "#edge", "indegree_distribution", "outdegree_distribution", 
             "#not_node", "#nand_node", "#nor_node", "#xor_node", "#xnor_node", "#input_node", "#0_node",
             "#1_node", "#x_node", "#buf_node", "#and_node", "#or_node", "#bb_input_node", "#bb_output_node",
@@ -60,7 +60,7 @@ def main(
                 graph_info = extract_graph_info(graph)
                 efforts = value['synthesis_efforts'].split('_') 
                 row = [
-                    int(key), value['rtl_id'], efforts[0], efforts[1], efforts[2],
+                    int(key), value['rtl_id'], efforts[0], efforts[1], efforts[2], value["graphgen_status"],
                     graph_info["type_distribution"].get(11, 0),
                     graph_info["output_distribution"].get(1, 0),
                     graph_info["node_count"], graph_info["edge_count"], 

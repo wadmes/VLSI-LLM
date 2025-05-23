@@ -57,7 +57,7 @@ def main(
             module_names = list(v['name_mapping'].keys())
             dataflow_status = 1 if v['dataflow_status'] else 0
             synthesis_status = 1 if v['synthesis_status'] else 0
-            verilog_file_length = get_file_length(data_dir / f"synthesis/{idx}/rtl.v")
+            verilog_file_length = get_file_length(data_dir / f"synthesis/{idx}/rtl.sv")
             total_nodes = 0
             total_edges = 0
             total_type_distribution = {}

@@ -46,7 +46,7 @@ def synthesize_rtl(rtl_id: int, output_dir: Path, synthesis_timelimit: int, synt
     launch_cmds = ("genus", "-no_gui", "-abort_on_error", "-log", "genus", "-execute")
     syn_cmds = (
         f"set_db / .library {synthesis_lib}",
-        "read_hdl -v ../../rtl.v",
+        "read_hdl -v ../../rtl.sv",
         "elaborate",
         "bitblast_all_ports",
         'update_names -hnet -restricted {[ ] .} -replace_str "_"',
@@ -55,6 +55,8 @@ def synthesize_rtl(rtl_id: int, output_dir: Path, synthesis_timelimit: int, synt
         "syn_generic", "syn_map", "syn_opt",
         "ungroup -all -flatten -force",
         'redirect syn.v "write_hdl -generic"',
+        "report_power > power_report.txt",
+        "report_area -summary > area_report.txt",
         "exit",
     )
 
@@ -104,7 +106,7 @@ def process_rtl(args: Tuple[int, str, str, Path, int, Path]) -> Tuple[int, int]:
     else:
         with open(rtl_output_dir / "description.txt", 'w') as f:
             f.write(prompt)
-    with open(rtl_output_dir / "rtl.v", 'w') as f:
+    with open(rtl_output_dir / "rtl.sv", 'w') as f:
         f.write(code)
     
     return synthesize_rtl(idx, rtl_output_dir / "syn", synthesis_timelimit, synthesis_lib)
