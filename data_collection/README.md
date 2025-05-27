@@ -153,7 +153,7 @@ The processed data includes these files:
 - Each netlist data dictionary has the following mapping:
     1. `"rtl_id"`: (integer) the corresponding RTL design used to generate this netlist.
     2. `"synthesis_efforts"`: (string) the efforts used in genus to synthesize the RTL design (`"{generic_effort}_{mapping_effort}_{optimization_effort}"`).
-    3. `"'graphgen_status'"`: (bool) whether this netlist successfully generates a graph.
+    3. `"graphgen_status"`: (bool) whether this netlist successfully generates a graph.
 
 ### `data_dir/netlist_data/graph/`
 - Content: a folder containing python pickle files of the netlist graph as a `NetworkX` object.
@@ -165,4 +165,4 @@ The processed data includes these files:
 
 ### `data_dir/netlist_data/netlist.csv`
 - Content: a file containing all netlist related metadata.
-- Headers: `"id", "rtl_id", "generic_effort", "mapping_effort", "optimization_effort", "#input", "#output", "#node", "#edge", "indegree_distribution", "outdegree_distribution", "#not_node", "#nand_node", "#nor_node", "#xor_node", "#xnor_node", "#input_node", "#0_node", "#1_node", "#x_node", "#buf_node", "#and_node", "#or_node", "#bb_input_node", "#bb_output_node", "verilog_file_length"`.
+- Headers: `"id", "rtl_id", "generic_effort", "mapping_effort", "optimization_effort", "graphgen_status", "#input", "#output", "#node", "#edge", "indegree_distribution", "outdegree_distribution", "#not_node", "#nand_node", "#nor_node", "#xor_node", "#xnor_node", "#input_node", "#0_node", "#1_node", "#x_node", "#buf_node", "#and_node", "#or_node", "#bb_input_node", "#bb_output_node", "verilog_file_length"`.
